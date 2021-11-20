@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - geometry - vertex colors</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+		<link rel="stylesheet" type="text/css" href="style.css" />
+		<style>
+			body {
+				background-color: #fff;
+				color: #444;
+			}
+			a {
+				color: #08f;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="container"></div>
+
+		<script type="module">
+			import * as THREE from 'https://cdn.skypack.dev/three'
+
+			import Stats from 'https://cdn.skypack.dev/three/examples/jsm/libs/stats.module.js'
+			import {GUI} from 'https://cdn.skypack.dev/three/examples/jsm/libs/dat.gui.module.js'
+			// import Stats from './jsm/libs/stats.module.js';
+
+			let wireRotation = new THREE.Vector3()
+			let mousePos = new THREE.Vector3()
+			let mousePosN = new THREE.Vector3()
+
+			let container, stats
+
+			let camera, scene, renderer
+
+			let mouseX = 0,
+				mouseY = 0
+
+			let windowHalfX = window.innerWidth / 2
+			let windowHalfY = window.innerHeight / 2
+
+			let mesh
+
+			let gui = new GUI()
+			let hemiGui = gui.addFolder('Hemisphere Light')
+			let hemiPosition = {x: 0, y: 0, z: 0}
+			let hemiLight
+			hemiGui.add(hemiPosition, 'x', 0, 10, 1)
+			hemiGui.add(hemiPosition, 'y', 0, 10, 1)
+			hemiGui.add(hemiPosition, 'z', 0, 10, 1)
+
+			let light2Gui = gui.addFolder('Directional Light 2')
+			let light2Pos = {x: 0, y: 0, z: 1}
+			let light2
+			light2Gui.add(light2Pos, 'x', -10, 10, 1)
+			light2Gui.add(light2Pos, 'y', -10, 10, 1)
+			light2Gui.add(light2Pos, 'z', -10, 10, 1)
+
+			let amLightGui = gui.addFolder('Ambient Light')
+			let amLightProp = {intensity: 0.5, color: '#c13bff'}
+			let amLight
+			amLightGui.add(amLightProp, 'intensity', 0, 1, 0.05)
+			amLightGui.addColor(amLightProp, 'color')
+
+			let wireframe
+
+			init()
+			animate()
+
+			function init() {
+				container = document.getElementById('container')
+
+				camera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 1, 10000)
+				camera.position.z = 1800
+
+				scene = new THREE.Scene()
+				scene.background = new THREE.Color(0xffffff)
+
+				const light = new THREE.DirectionalLight(0xffffff)
+				light.position.set(0, 0, 1)
+				// scene.add(light)
+
+				light2 = new THREE.DirectionalLight(0x11e8b9, 1)
+				light2.position.set(light2Pos.x, light2Pos.y, light2Pos.z)
+				scene.add(light2)
+
+				hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 1)
+				hemiLight.position.set(hemiPosition.x, hemiPosition.y, hemiPosition.z)
+				// hemiLight.color.set(0xc13bff)
+				// hemiLight.groundColor.set(0xc13bff)
+				scene.add(hemiLight)
+
+				console.log(amLightProp)
+				amLight = new THREE.AmbientLight()
+				amLight.color = new THREE.Color(amLightProp.color)
+				amLight.intensity = amLightProp.intensity
+				scene.add(amLight)
+
+				const radius = 200
+
+				const geometry1 = new THREE.IcosahedronGeometry(radius, 0)
+				const count = geometry1.attributes.position.count
+				let colors = []
+				const color = new THREE.Color()
+				const positions1 = geometry1.attributes.position
+
+				for (let i = 0; i < count; i++) {
+					let y = positions1.getY(i)
+					let x = positions1.getX(i)
+					let yMapped = (y + radius) / (radius * 2)
+					let xMap = (x + radius) / (radius * 2)
+
+					color.setRGB(yMapped, xMap, 0.5)
+					colors.push(color.r, color.g, color.b)
+				}
+
+				geometry1.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
+
+				const material = new THREE.MeshPhongMaterial({
+					color: 0xffffff,
+					// flatShading: true,
+					vertexColors: true,
+					shininess: 0,
+					transparent: true,
+					opacity: 0.5,
+					side: THREE.DoubleSide,
+				})
+
+				const geometry2 = new THREE.IcosahedronGeometry(300, 1)
+				const wireframeMaterial = new THREE.MeshBasicMaterial({
+					color: 0x513b9a,
+					wireframe: true,
+					transparent: true,
+					wireframeLinewidth: 5,
+					opacity: 0.3,
+					side: THREE.DoubleSide,
+				})
+				wireframe = new THREE.Mesh(geometry2, wireframeMaterial)
+
+				mesh = new THREE.Mesh(geometry1, material)
+				// let wireframe = new THREE.Mesh(geometry1, wireframeMaterial)
+				scene.add(mesh)
+				scene.add(wireframe)
+
+				renderer = new THREE.WebGLRenderer({antialias: true})
+				renderer.setPixelRatio(window.devicePixelRatio)
+				renderer.setSize(window.innerWidth, window.innerHeight)
+				container.appendChild(renderer.domElement)
+
+				// stats = new Stats()
+				// container.appendChild(stats.dom)
+
+				document.addEventListener('mousemove', onDocumentMouseMove)
+				window.addEventListener('resize', onWindowResize)
+			}
+
+			function onWindowResize() {
+				windowHalfX = window.innerWidth / 2
+				windowHalfY = window.innerHeight / 2
+
+				camera.aspect = window.innerWidth / window.innerHeight
+				camera.updateProjectionMatrix()
+
+				renderer.setSize(window.innerWidth, window.innerHeight)
+			}
+
+			function onDocumentMouseMove(event) {
+				mousePos.x = event.clientX - windowHalfX
+				mousePos.y = event.clientY - windowHalfY
+				mousePosN.copy(mousePos).normalize()
+			}
+
+			//
+
+			function animate() {
+				requestAnimationFrame(animate)
+				// mesh.rotation.x -= 0.007
+				// mesh.rotation.y -= 0.006
+
+				render()
+			}
+			console.log(windowHalfX)
+
+			function render() {
+				hemiLight.position.set(hemiPosition.x, hemiPosition.y, hemiPosition.z)
+				light2.position.set(light2Pos.x, light2Pos.y, light2Pos.z)
+				amLight.intensity = amLightProp.intensity
+				amLight.color = new THREE.Color(amLightProp.color)
+
+				// camera.position.x = mousePos.x * windowHalfX
+				camera.position.x += (mousePos.x - camera.position.x) * 0.05
+				camera.position.y += (-mousePos.y - camera.position.y) * 0.05
+
+				wireRotation.lerp(mousePosN, 0.01)
+				wireframe.rotation.x = wireRotation.x
+				wireframe.rotation.y = wireRotation.y
+
+				camera.lookAt(scene.position)
+
+				renderer.render(scene, camera)
+			}
+		</script>
+	</body>
+</html>

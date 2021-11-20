@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - geometry - vertex colors</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+		<style>
+			body {
+				background-color: #fff;
+				color: #444;
+				margin: 0;
+			}
+			a {
+				color: #08f;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="container"></div>
+
+		<script type="module">
+			import * as THREE from 'https://cdn.skypack.dev/three'
+
+			import Stats from 'https://cdn.skypack.dev/three/examples/jsm/libs/stats.module.js'
+			import {GUI} from 'https://cdn.skypack.dev/three/examples/jsm/libs/dat.gui.module.js'
+			import {OrbitControls} from 'https://cdn.skypack.dev/three/examples/jsm/controls/OrbitControls.js'
+			import {GLTFLoader} from 'https://cdn.skypack.dev/three/examples/jsm/loaders/GLTFLoader.js'
+
+			let camera, scene, renderer, container, controls
+			let lights = []
+			let gui = new GUI()
+
+			function makeAmLight(scene) {
+				let amLightProps = {intensity: 0.5, color: '#ffffff'}
+
+				let amLight = new THREE.AmbientLight()
+				amLight.color = new THREE.Color(amLightProps.color)
+
+				let amLightGui = gui.addFolder('Ambient Light')
+				amLightGui.add(amLightProps, 'intensity', 0, 30, 0.1)
+				amLightGui.addColor(amLightProps, 'color')
+
+				scene.add(amLight)
+
+				let light = {
+					light: amLight,
+					props: amLightProps,
+					update: function () {
+						amLight.color = new THREE.Color(amLightProps.color)
+						amLight.intensity = amLightProps.intensity
+					},
+				}
+
+				light.update()
+				return light
+			}
+
+			function makeDirectionalLight(scene, name, x = 0, y = 10, z = 0) {
+				let props = {color: '#ffffff', intensity: 1, x, y, z}
+				let light = new THREE.DirectionalLight(props.color, props.intensity)
+
+				// light.castShadow = true
+
+				let dGui = gui.addFolder('Directional Light ' + name)
+				dGui.add(light, 'intensity', 0, 3, 0.1)
+				dGui.add(props, 'x', -50, 50, 1)
+				dGui.add(props, 'y', -50, 50, 1)
+				dGui.add(props, 'z', -50, 50, 1)
+
+				scene.add(light)
+
+				let lightObj = {
+					light,
+					props,
+					update: function () {
+						// light.intensity = props.intensity
+						light.position.set(props.x, props.y, props.z)
+					},
+				}
+
+				lightObj.update()
+
+				let helper = new THREE.DirectionalLightHelper(light, 2)
+				scene.add(helper)
+				return lightObj
+			}
+
+			function makePointLight(scene, name, color = 0xffffff, x = 5, y = 10, z = -10) {
+				let props = {x, y, z}
+				let light = new THREE.PointLight(color)
+
+				let pointGui = gui.addFolder('Point Light ' + name)
+				pointGui.add(light, 'intensity', 0, 10, 0.2)
+				pointGui.add(light, 'distance', 0, 100, 1)
+				pointGui.add(light, 'decay', 0, 3, 0.1)
+				pointGui.addColor(light, 'color')
+
+				scene.add(light)
+
+				// let helper = new THREE.PointLightHelper(light, 1)
+				// scene.add(helper)
+
+				let lightObj = {
+					light,
+					props,
+					update: function () {
+						light.position.x = x * Math.sin(count * 0.01)
+						light.position.y = y * Math.sin(count * 0.01)
+						light.position.z = z * Math.sin(count * 0.02)
+					},
+				}
+
+				return lightObj
+			}
+
+			function setControls() {
+				controls = new OrbitControls(camera, renderer.domElement)
+				controls.zoomSpeed = 0.5
+				// controls.target.set(0, 5, 0)
+				controls.update()
+			}
+
+			function cameraControls() {
+				let camGui = gui.addFolder('Camera')
+				camGui.add(camera, 'near', 0, 10, 0.0001).listen()
+				camGui.add(camera, 'far', 0, 100000, 1).listen()
+				camGui.add(camera, 'fov', 0, 500, 1).listen()
+				camGui.add(camera.position, 'x', -200, 200, 1).listen()
+				camGui.add(camera.position, 'y', -200, 200, 1).listen()
+				camGui.add(camera.position, 'z', -200, 200, 1).listen()
+				camGui.add(camera.rotation, 'x', -Math.PI, Math.PI, 0.1).name('rotation x').listen()
+				camGui.add(camera.rotation, 'y', -Math.PI, Math.PI, 0.1).name('rotation y').listen()
+				camGui.add(camera.rotation, 'z', -Math.PI, Math.PI, 0.1).name('rotation z').listen()
+			}
+
+			function init() {
+				let colors = [0xf6ae2d, 0x3dd7d0, 0x9448bc, 0x71f79f]
+				container = document.getElementById('container')
+				renderer = new THREE.WebGLRenderer({antialias: true})
+				renderer.setSize(window.innerWidth, window.innerHeight)
+				renderer.setPixelRatio(window.devicePixelRatio)
+				container.appendChild(renderer.domElement)
+
+				camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 180)
+				camera.position.set(1, 0, -30)
+
+				scene = new THREE.Scene()
+				scene.background = new THREE.Color(0x1f2426)
+
+				let sphereGeo = new THREE.SphereGeometry(4, 25, 12)
+				let sphereMat = new THREE.MeshPhongMaterial({
+					color: 0xd3eedc,
+					shininess: 0,
+					opacity: 0.9,
+					transparent: true,
+					side: THREE.DoubleSide,
+				})
+				let sphere = new THREE.Mesh(sphereGeo, sphereMat)
+				let sphere2 = new THREE.Mesh(sphereGeo, sphereMat)
+				scene.add(sphere)
+				scene.add(sphere2)
+				sphere2.position.set(10, 0, 0)
+
+				let smallSphere = new THREE.SphereGeometry(0.2, 8, 10)
+
+				for (let i = 0; i < 8; i++) {
+					let lightObj = makePointLight(
+						scene,
+						i.toString(),
+						colors[i % (colors.length - 1)],
+						random(-10, 10),
+						random(-10, 10),
+						random(-10, 10)
+					)
+					lightObj.light.add(
+						new THREE.Mesh(smallSphere, new THREE.MeshBasicMaterial({color: lightObj.light.color}))
+					)
+					lights.push(lightObj)
+				}
+
+				window.lights = lights
+
+				setControls()
+				cameraControls()
+			}
+
+			function random(start, end) {
+				let range = end - start
+				let r = Math.random() * range + start
+				return r
+			}
+
+			let count = 0
+
+			function animate() {
+				count++
+				camera.updateProjectionMatrix()
+				lights.forEach((light) => {
+					light.update()
+				})
+
+				controls.update()
+				renderer.render(scene, camera)
+
+				requestAnimationFrame(animate)
+			}
+
+			init()
+			requestAnimationFrame(animate)
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight
+				camera.updateProjectionMatrix()
+
+				renderer.setSize(window.innerWidth, window.innerHeight)
+			}
+			window.addEventListener('resize', onWindowResize)
+		</script>
+	</body>
+</html>
