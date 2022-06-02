@@ -15,8 +15,5 @@
   "bugs": {
     "url": "https://github.com/crankysparrow/three-experiments/issues"
   },
-  "homepage": "https://github.com/crankysparrow/three-experiments#readme",
-  "dependencies": {
-    "three": "^0.141.0"
-  }
+  "homepage": "https://github.com/crankysparrow/three-experiments#readme"
 }
