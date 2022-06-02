@@ -8,6 +8,11 @@
 			content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
 		/>
 	</head>
+	<style>
+		body {
+			margin: 0;
+		}
+	</style>
 	<body>
 		<div id="container"></div>
 		<script
@@ -44,12 +49,8 @@
 			let mesh
 
 			let gui = new GUI()
-			let hemiGui = gui.addFolder('Hemisphere Light')
 			let hemiPosition = {x: 0, y: 0, z: 0}
 			let hemiLight
-			hemiGui.add(hemiPosition, 'x', 0, 10, 1)
-			hemiGui.add(hemiPosition, 'y', 0, 10, 1)
-			hemiGui.add(hemiPosition, 'z', 0, 10, 1)
 
 			let light2Gui = gui.addFolder('Directional Light 2')
 			let light2Pos = {x: 0, y: 0, z: 1}
@@ -59,7 +60,7 @@
 			light2Gui.add(light2Pos, 'z', -10, 10, 1)
 
 			let amLightGui = gui.addFolder('Ambient Light')
-			let amLightProp = {intensity: 0.5, color: '#c13bff'}
+			let amLightProp = {intensity: 0.1, color: '#c13bff'}
 			let amLight
 			amLightGui.add(amLightProp, 'intensity', 0, 1, 0.05)
 			amLightGui.addColor(amLightProp, 'color')
@@ -83,18 +84,11 @@
 				scene = new THREE.Scene()
 				scene.background = new THREE.Color(0xffffff)
 
-				const light = new THREE.DirectionalLight(0xffffff)
-				light.position.set(0, 0, 1)
-				// scene.add(light)
-
 				light2 = new THREE.DirectionalLight(0x11e8b9, 1)
 				light2.position.set(light2Pos.x, light2Pos.y, light2Pos.z)
 				scene.add(light2)
 
 				hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 1)
-				hemiLight.position.set(hemiPosition.x, hemiPosition.y, hemiPosition.z)
-				// hemiLight.color.set(0xc13bff)
-				// hemiLight.groundColor.set(0xc13bff)
 				scene.add(hemiLight)
 
 				amLight = new THREE.AmbientLight()
