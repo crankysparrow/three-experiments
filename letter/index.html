@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>three.js webgl - geometry - vertex colors</title>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+        <style>
+            body {
+                background-color: #fff;
+                color: #444;
+                margin: 0;
+            }
+            a {
+                color: #08f;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="container"></div>
+        <script
+            async
+            src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://unpkg.com/three@0.141.0/build/three.module.js"
+                }
+            }
+        </script>
+        <script type="module">
+            // import * as THREE from 'https://cdn.skypack.dev/three'
+
+            // import Stats from 'https://cdn.skypack.dev/three/examples/jsm/libs/stats.module.js'
+            // import {GUI} from 'https://cdn.skypack.dev/three/examples/jsm/libs/dat.gui.module.js'
+            import * as THREE from 'https://unpkg.com/three@0.141.0/build/three.module.js'
+
+            import Stats from 'https://cdn.skypack.dev/three/examples/jsm/libs/stats.module.js'
+            import { GUI } from 'https://unpkg.com/three@0.141.0/examples/jsm/libs/lil-gui.module.min.js'
+            import { OrbitControls } from 'https://unpkg.com/three@0.141.0/examples/jsm/controls/OrbitControls.js'
+
+            // import {GLTFLoader} from 'https://cdn.skypack.dev/three/examples/jsm/loaders/GLTFLoader.js'
+            import { GLTFLoader } from 'https://unpkg.com/three@0.141.0/examples/jsm/loaders/GLTFLoader.js'
+
+            let camera, scene, renderer, container, controls
+            let lights = []
+            let gui = new GUI()
+
+            function makeAmLight(scene) {
+                let amLightProps = { intensity: 0.5, color: '#ffffff' }
+
+                let amLight = new THREE.AmbientLight()
+                amLight.color = new THREE.Color(amLightProps.color)
+
+                let amLightGui = gui.addFolder('Ambient Light')
+                amLightGui.add(amLightProps, 'intensity', 0, 30, 0.1)
+                amLightGui.addColor(amLightProps, 'color')
+
+                scene.add(amLight)
+
+                let light = {
+                    light: amLight,
+                    props: amLightProps,
+                    update: function () {
+                        amLight.color = new THREE.Color(amLightProps.color)
+                        amLight.intensity = amLightProps.intensity
+                    },
+                }
+
+                light.update()
+                return light
+            }
+
+            function makeDirectionalLight(scene) {
+                let props = { color: '#ffffff', intensity: 1, x: 0, y: 1, z: 0 }
+                let light = new THREE.DirectionalLight(props.color, props.intensity)
+
+                // light.castShadow = true
+
+                let dGui = gui.addFolder('Directional Light')
+                dGui.add(props, 'intensity', 0, 30, 0.5)
+                dGui.add(props, 'x', -50, 50, 1)
+                dGui.add(props, 'y', -50, 50, 1)
+                dGui.add(props, 'z', -50, 50, 1)
+
+                scene.add(light)
+
+                let lightObj = {
+                    light,
+                    props,
+                    update: function () {
+                        light.intensity = props.intensity
+                        light.position.set(props.x, props.y, props.z)
+                    },
+                }
+
+                lightObj.update()
+                return lightObj
+            }
+
+            function makePointLight(scene) {
+                let light = new THREE.PointLight(0xff0000, 1, 0, 1)
+
+                let props = { x: 5, y: 10, z: -10, intensity: 1, distance: 0, decay: 1 }
+
+                let pointGui = gui.addFolder('Point Light')
+                pointGui.add(props, 'x', -50, 50, 1)
+                pointGui.add(props, 'y', -50, 50, 1)
+                pointGui.add(props, 'z', -50, 50, 1)
+                pointGui.add(light, 'intensity', 0, 10, 0.5)
+                pointGui.add(light, 'distance', 0, 100, 1)
+                pointGui.add(light, 'decay', 0, 3, 0.1)
+
+                scene.add(light)
+
+                let helper = new THREE.PointLightHelper(light, 1)
+                scene.add(helper)
+
+                let lightObj = {
+                    light,
+                    props,
+                    update: function () {
+                        // light.intensity = props.intensity
+                        light.position.set(props.x, props.y, props.z)
+                        // light.distance = props.distance
+                    },
+                }
+
+                return lightObj
+            }
+
+            function setControls() {
+                controls = new OrbitControls(camera, renderer.domElement)
+                controls.autoRotate = true
+                controls.zoomSpeed = 0.5
+                controls.target.set(0, 5, 0)
+                controls.update()
+            }
+
+            function init() {
+                container = document.getElementById('container')
+                renderer = new THREE.WebGLRenderer({ antialias: true })
+                renderer.setSize(window.innerWidth, window.innerHeight)
+                renderer.setPixelRatio(window.devicePixelRatio)
+                container.appendChild(renderer.domElement)
+
+                camera = new THREE.PerspectiveCamera(
+                    45,
+                    window.innerWidth / window.innerHeight,
+                    0.1,
+                    180
+                )
+                camera.position.set(-5, 0, 60)
+
+                scene = new THREE.Scene()
+                scene.background = new THREE.Color(0x555555)
+
+                lights.push(makeAmLight(scene))
+                lights.push(makeDirectionalLight(scene))
+                lights.push(makePointLight(scene))
+
+                setControls()
+
+                let loader = new GLTFLoader()
+                loader.load(
+                    'Arsenal2.glb',
+                    function (gltf) {
+                        let root = gltf.scene
+                        scene.add(root)
+                        console.log(root)
+
+                        let box = new THREE.Box3().setFromObject(root)
+                        let boxSize = box.getSize(new THREE.Vector3()).length()
+                        let boxCenter = box.getCenter(new THREE.Vector3())
+
+                        camera.near = boxSize / 100
+                        camera.far = boxSize * 100
+                        camera.updateProjectionMatrix()
+                        camera.lookAt(boxCenter.x, boxCenter.y, boxCenter.z)
+
+                        if (controls) {
+                            controls.maxDistance = boxSize * 3
+                            controls.target.copy(boxCenter)
+                            controls.update()
+                        }
+                    },
+                    undefined,
+                    function (err) {
+                        console.error(err)
+                    }
+                )
+
+                console.log(camera)
+                let camGui = gui.addFolder('Camera')
+                camGui.add(camera, 'near', 0, 10, 0.0001).listen()
+                camGui.add(camera, 'far', 0, 100000, 1).listen()
+                camGui.add(camera, 'fov', 0, 500, 1).listen()
+                camGui.add(camera.position, 'x', -200, 200, 1).listen()
+                camGui.add(camera.position, 'y', -200, 200, 1).listen()
+                camGui.add(camera.position, 'z', -200, 200, 1).listen()
+                camGui.add(camera.rotation, 'x', -Math.PI, Math.PI, 0.1).name('rotation x').listen()
+                camGui.add(camera.rotation, 'y', -Math.PI, Math.PI, 0.1).name('rotation y').listen()
+                camGui.add(camera.rotation, 'z', -Math.PI, Math.PI, 0.1).name('rotation z').listen()
+            }
+
+            function animate() {
+                camera.updateProjectionMatrix()
+                lights.forEach((light) => {
+                    light.update()
+                })
+                renderer.render(scene, camera)
+
+                requestAnimationFrame(animate)
+            }
+
+            init()
+            requestAnimationFrame(animate)
+
+            function onWindowResize() {
+                // windowHalfX = window.innerWidth / 2
+                // windowHalfY = window.innerHeight / 2
+
+                camera.aspect = window.innerWidth / window.innerHeight
+                camera.updateProjectionMatrix()
+
+                renderer.setSize(window.innerWidth, window.innerHeight)
+            }
+            window.addEventListener('resize', onWindowResize)
+        </script>
+    </body>
+</html>
