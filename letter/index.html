@@ -134,7 +134,7 @@
                 controls = new OrbitControls(camera, renderer.domElement)
                 controls.autoRotate = true
                 controls.zoomSpeed = 0.5
-                controls.target.set(0, 5, 0)
+                controls.target.set(0, 1, 0)
                 controls.update()
             }
 
@@ -164,7 +164,7 @@
 
                 let loader = new GLTFLoader()
                 loader.load(
-                    'Arsenal2.glb',
+                    'Arsenal-DifferentView3.glb',
                     function (gltf) {
                         let root = gltf.scene
                         scene.add(root)
@@ -180,7 +180,7 @@
                         camera.lookAt(boxCenter.x, boxCenter.y, boxCenter.z)
 
                         if (controls) {
-                            controls.maxDistance = boxSize * 3
+                            controls.maxDistance = boxSize * 2
                             controls.target.copy(boxCenter)
                             controls.update()
                         }
